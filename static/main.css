@@ -1,0 +1,8 @@
+@font-face {
+    font-family: Share;
+    src: url("./fonts/Share-Regular.ttf");
+}
+
+* {
+    font-family: Share;
+}
