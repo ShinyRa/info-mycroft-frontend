@@ -2,95 +2,37 @@
 	import { onMount } from 'svelte';
 	import { bounceIn } from 'svelte/easing';
 	import { slide } from 'svelte/transition';
-
-	let socket;
-
-	let questions = [];
-
-	let question = '';
-	let answer = '';
-
-	let SpeechRecognition;
+	import Microphone from './Microphone.svelte';
 
 	/**
-	 * @type {{ continuous: boolean; onresult: { (event: any): void; (event: any): void; }; }}
+	 * @type {WebSocket}
 	 */
-	let recognition;
+	let socket;
+
+	/**
+	 * @type {any[]}
+	 */
+	let questions = [];
+
 	/**
 	 * @type boolean
 	 */
 	let loaded;
 
-	let time = 5000;
-
-	let timeElapsed = 0;
-
 	let state;
+
+	let startRecording;
+
+	let question = '';
+	let answer = '';
 
 	onMount(async () => {
 		loaded = true;
 
 		socket = new WebSocket('ws://10.0.0.241:1337/');
-
-		socket.onmessage = (event) => {
-			console.log(event);
-			answer = event.data;
-			readOutLoud(event.data);
-			saveQuestion();
-		};
-
-		// socket.addEventListener('open', (event) => {
-		// 	socket.send('Hello Server!');
-		// });
-
-		try {
-			SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-			recognition = new SpeechRecognition();
-		} catch (e) {
-			console.error(e);
-		}
-		recognition.lang = 'en-US';
-		recognition.continuous = true;
-		recognition.onresult = function (event) {
-			let current = event.resultIndex;
-			let transcript = event.results[current][0].transcript;
-			question += transcript;
-		};
 	});
 
-	function readOutLoud(message) {
-		let speech = new SpeechSynthesisUtterance();
-		speech.text = message;
-		speech.volume = 1;
-		speech.rate = 1;
-		speech.pitch = 1;
-		window.speechSynthesis.speak(speech);
-	}
-
-	const startRecording = () => {
-		question = '';
-		answer = '';
-		recognition.start();
-		state = 1;
-		timeElapsed = 0;
-
-		let recording = setInterval(() => {
-			timeElapsed += 10;
-		}, 10);
-		setTimeout(() => {
-			clearInterval(recording);
-			stopRecording();
-		}, time);
-	};
-
-	const stopRecording = () => {
-		recognition.stop();
-		state = 0;
-		console.log('sending:' + question);
-		socket.send(question);
-	};
-
-	const saveQuestion = () => {
+	const saveQuestion = (question, answer) => {
 		questions.push({
 			question: question,
 			answer: answer
@@ -105,7 +47,13 @@
 			{#key state}
 				<h1 class="title">{state ? "I'm listening..." : "I'm thinking..."}</h1>
 			{/key}
-			<progress class="progress is-info" value={timeElapsed} max={time} />
+			<Microphone
+				{socket}
+				onMessage={(question, answer) => saveQuestion(question, answer)}
+				bind:state
+				bind:question
+				bind:answer
+			/>
 		</section>
 		<section class="section recording">
 			<section class="section preview">
@@ -117,7 +65,6 @@
 				{/key}
 			</section>
 		</section>
-		<button class="button is-primary" on:click={startRecording}>Record</button>
 
 		{#key questions}
 			<section class="section footnote">
