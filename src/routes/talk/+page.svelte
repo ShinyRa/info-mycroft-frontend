@@ -1,8 +1,9 @@
 <script>
 	import { onMount } from 'svelte';
-	import { bounceIn } from 'svelte/easing';
-	import { slide } from 'svelte/transition';
+	import { fade, fly, slide } from 'svelte/transition';
+	import * as eases from 'svelte/easing';
 	import Microphone from './Microphone.svelte';
+	import { elasticIn } from 'svelte/easing';
 
 	/**
 	 * @type {WebSocket}
@@ -22,8 +23,7 @@
 	let state;
 
 	let startRecording;
-
-	let question = '';
+	let question = [];
 	let answer = '';
 
 	onMount(async () => {
@@ -34,54 +34,62 @@
 
 	const saveQuestion = (question, answer) => {
 		questions.push({
-			question: question,
+			question: question.join(' '),
 			answer: answer
 		});
 		questions = questions;
 	};
 </script>
 
-{#if loaded}
-	<div class="page">
-		<section class="section">
-			{#key state}
-				<h1 class="title">{state ? "I'm listening..." : "I'm thinking..."}</h1>
-			{/key}
-			<Microphone
-				{socket}
-				onMessage={(question, answer) => saveQuestion(question, answer)}
-				bind:state
-				bind:question
-				bind:answer
-			/>
-		</section>
-		<section class="section recording">
-			<section class="section preview">
-				{#key question}
-					<h2 class="subtitle">{question}</h2>
+<div class="touch" on:click={() => startRecording()} on:keypress={() => startRecording()}>
+	{#if loaded}
+		<div class="page">
+			<section class="section">
+				{#key state}
+					<h1 class="title">{state ? "I'm listening..." : "I'm thinking..."}</h1>
 				{/key}
-				{#key answer}
-					<h1 class="title answer">{answer}</h1>
-				{/key}
+				<Microphone
+					{socket}
+					onMessage={(question, answer) => saveQuestion(question, answer)}
+					bind:state
+					bind:question
+					bind:answer
+					bind:startRecording
+				/>
 			</section>
-		</section>
-
-		{#key questions}
-			<section class="section footnote">
-				<ul>
-					{#each questions.reverse() as qst}
-						<li class="list-item" in:slide={{ easing: bounceIn }}>
-							<h3 class="subtitle">
-								{qst.question}
-							</h3>
-							<h1 class="title answer">{qst.answer}</h1>
-						</li>
+			<section class="section recording">
+				<section class="section preview">
+					{#each question as word, index}
+						<div
+							class="word-container"
+							in:fly={{ duration: 75, x: 0, y: -15, easing: elasticIn, delay: index * 75 }}
+						>
+							{word}
+						</div>
 					{/each}
-				</ul>
+					{#key answer}
+						<h1 class="title answer">{answer}</h1>
+					{/key}
+				</section>
 			</section>
-		{/key}
-	</div>
-{/if}
+
+			{#key questions}
+				<section class="section footnote">
+					<ul>
+						{#each questions.reverse() as qst}
+							<li class="list-item" transition:slide={{ duration: 250, easing: elasticIn }}>
+								<h3 class="subtitle">
+									{qst.question}
+								</h3>
+								<h1 class="title answer">{qst.answer}</h1>
+							</li>
+						{/each}
+					</ul>
+				</section>
+			{/key}
+		</div>
+	{/if}
+</div>
 
 <style>
 	.page {
@@ -106,6 +114,17 @@
 	}
 	.footnote {
 		height: 25rem;
+	}
+	.preview {
+		display: flex;
+		flex-direction: row;
+		gap: 1.5rem;
+		flex-wrap: wrap;
+	}
+
+	.word-container {
+		display: flex;
+		font-size: 3rem;
 	}
 
 	.answer {

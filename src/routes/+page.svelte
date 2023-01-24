@@ -13,31 +13,39 @@
 	const navigate = () => goto('/talk');
 </script>
 
-{#if loaded}
-	<div class="page">
-		<section class="section">
-			<h1 class="title">W A V E</h1>
-			<h3 class="subtitle">Don't be shy!</h3>
-		</section>
-		<section class="section wrapper-welcome">
-			<section class="section welcome is-medium">
-				<img src="/img/dots.png" class="dots" alt="dots" />
-				<img
-					src="/img/wave.png"
-					class="wave"
-					alt="waving hand"
-					in:slide={{ duration: 750, easing: elasticOut }}
-					on:click={() => navigate()}
-				/>
+<div class="touch" on:click={() => navigate()} on:keypress={() => navigate()}>
+	{#if loaded}
+		<div class="page">
+			<section class="section">
+				<h1 class="title">W A V E</h1>
+				<h3 class="subtitle">Don't be shy!</h3>
 			</section>
-		</section>
-		<section class="section footnote" in:fade={{ delay: 1000 }}>
-			<img src="/img/footer.png" class="footnote" alt="Start by saying Hello Mycroft!" />
-		</section>
-	</div>
-{/if}
+			<section class="section wrapper-welcome">
+				<section class="section welcome is-medium">
+					<img src="/img/dots.png" class="dots" alt="dots" />
+					<img
+						src="/img/wave.png"
+						class="wave"
+						alt="waving hand"
+						in:slide={{ duration: 750, easing: elasticOut }}
+						on:click={() => navigate()}
+						on:keypress={() => navigate()}
+					/>
+				</section>
+			</section>
+			<section class="section footnote" in:fade={{ delay: 1000 }}>
+				<img src="/img/footer.png" class="footnote" alt="Start by saying Hello Mycroft!" />
+			</section>
+		</div>
+	{/if}
+</div>
 
 <style>
+	.touch {
+		position: absolute;
+		height: 100vh;
+		width: 100vw;
+	}
 	.page {
 		height: 100vh;
 		background: #f4f4f4;

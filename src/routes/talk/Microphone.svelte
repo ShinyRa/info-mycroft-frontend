@@ -31,10 +31,13 @@
 		}
 		recognition.lang = 'en-US';
 		recognition.continuous = true;
+		recognition.interimResults = true;
 		recognition.onresult = (event) => {
 			let current = event.resultIndex;
 			let transcript = event.results[current][0].transcript;
-			question += transcript;
+			if (transcript.length > question.length) {
+				question = transcript.split(' ');
+			}
 		};
 
 		socket.onmessage = (event) => {
@@ -53,7 +56,7 @@
 		window.speechSynthesis.speak(speech);
 	};
 
-	const startRecording = () => {
+	export const startRecording = () => {
 		question = '';
 		answer = '';
 		recognition.start();
@@ -71,12 +74,10 @@
 
 	const stopRecording = () => {
 		recognition.stop();
+
 		state = 0;
-		console.log('sending:' + question);
-		socket.send(question);
+		socket.send(question.join(' '));
 	};
 </script>
 
 <progress class="progress is-info" value={timeElapsed} max={time} />
-<button class="button is-primary" on:click={() => startRecording()}>Record</button>
-{question}
