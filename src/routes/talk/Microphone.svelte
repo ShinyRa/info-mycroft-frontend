@@ -14,7 +14,7 @@
 		stop: () => void;
 	};
 
-	let time = 5000;
+	let time = 7000;
 
 	let timeElapsed = 0;
 

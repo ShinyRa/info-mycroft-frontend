@@ -67,9 +67,11 @@
 							{word}
 						</div>
 					{/each}
-					{#key answer}
-						<h1 class="title answer">{answer}</h1>
-					{/key}
+					<div class="answer">
+						{#key answer}
+							<h1 class="title answer">{answer}</h1>
+						{/key}
+					</div>
 				</section>
 			</section>
 
