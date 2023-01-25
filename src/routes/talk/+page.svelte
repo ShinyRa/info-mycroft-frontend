@@ -69,7 +69,6 @@
 	}
 
 	const switchExpression = (expression) => { 
-		console.log(expression)
 		if(expression == null) return; 
 		//then write logic to push correct animations for each eye to achieve smooth switch of expressions
 		let lastPair = [];
@@ -124,7 +123,6 @@
 			//1. take the first pair of eye animations form the queue
 			while(expressionQueue.length > 0){
 				let pair = expressionQueue.pop();
-				console.log(pair)
 
 				//2. for each eye: check that the state is not the eyes current state, if not: switch the src to new image
 				//rewrite to be usable as function for both eyes
@@ -146,7 +144,7 @@
 						leftEye.style = "transform: scaleY(1)";
 					}
 					
-					let newSrc = `img/eye_animations/${theme}/${img}${reversed}.svg`
+					let newSrc = `img/eye_animations/${$theme}/${img}${reversed}.svg`
 					leftEye.src = newSrc
 					leftEyeState = pair[0]
 					refreshImage(leftEye);
@@ -170,7 +168,7 @@
 						rightEye.style = "transform: scaleY(1)";
 					}
 
-					let newSrc = `img/eye_animations/${theme}/${img}${reversed}.svg`
+					let newSrc = `img/eye_animations/${$theme}/${img}${reversed}.svg`
 					rightEye.src = newSrc
 					rightEyeState = pair[1]
 					refreshImage(rightEye);
@@ -199,6 +197,10 @@
 		element.src = imgURL + queryString;    
 	};
 
+	const buttonFunction = (newState) => {
+		switchExpression(newState);
+	}
+
 </script>
 
 {#if loaded}
@@ -215,6 +217,11 @@
 					{switchExpression(state)}
 				{/key}
 			</div>
+			<button on:click={() => switchExpression(Expressions.Neutral)}>Neutral</button>
+			<button on:click={() => switchExpression(Expressions.Listening)}>Listening</button>
+			<button on:click={() => switchExpression(Expressions.Talking)}>Talking</button>
+			<button on:click={() => switchExpression(Expressions.Winking)}>Winking</button>
+			<button on:click={() => switchExpression(Expressions.Thinking)}>Thinking</button>
 		</section>
 		<section class="section input">
 			{#key dialogueIndex}
