@@ -1,13 +1,12 @@
 <script>
 	import { onMount } from 'svelte';
-	import { fly, slide } from 'svelte/transition';
-	import * as eases from 'svelte/easing';
-	import Microphone from './Microphone.svelte';
 	import {Expressions} from "../../expression-states";
 	import {EyeStates} from "../../eye-states";
 	import {ExpressionsToEyeStates} from "../../expressions-to-eyestates";
 	import {EyeStatesToImgSrc} from "../../eyestates-to-img-src";
-	import { elasticIn } from 'svelte/easing';
+	import { fade, fly, slide } from 'svelte/transition';
+	import { theme } from '../../components/theme/themeStore';
+	import TextField from '../../components/input/TextField.svelte';
 
 	/**
 	 * @type {WebSocket}
@@ -29,6 +28,15 @@
 	let startRecording;
 	let question = [];
 	let answer = '';
+	let textFieldValue;
+
+	const dialogue = [
+		'Hi, I am Kiko !',
+		'I know a lot about travel information or weather updates for example',
+		'If you need me, I’m listening...'
+	];
+
+	let dialogueIndex = 0;
 
 	let leftEye;
 	let leftEyeState = EyeStates.Neutral;
@@ -42,6 +50,10 @@
 		loaded = true;
 
 		socket = new WebSocket('ws://10.0.0.241:1337/');
+
+		setInterval(() => {
+			dialogueIndex++;
+		}, 5000);
 	});
 
 	const saveQuestion = (question, answer) => {
@@ -194,71 +206,67 @@
 
 </script>
 
-<div class="touch" on:click={() => startRecording()} on:keypress={() => startRecording()}>
-	{#if loaded}
-		<div class="page">
-			<section class="section">
-				<img bind:this={leftEye} src="img/eye_animations/dark/eye_neutral.svg" id="leftEye"  alt="eye">
-			<img bind:this={rightEye} src="img/eye_animations/dark/eye_neutral.svg" id="rightEye"  alt="eye">
-				{#key state}
-					<h1 class="title">
-						{#if state == Expressions.Thinking} "I'm listening..."
-						{:else if state == Expressions.Winking} "I'm winking..." {/if}
-					</h1>
-					{switchExpression(state)}
-				{/key}
-				<Microphone
-					{socket}
-					onMessage={(question, answer) => saveQuestion(question, answer)}
-					bind:state
-					bind:question
-					bind:answer
-					bind:startRecording
-				/>
-			</section>
-			<section class="section recording">
-				<section class="section preview">
-					{#each question as word, index}
-						<div
-							class="word-container"
-							in:fly={{ duration: 75, x: 0, y: -15, easing: elasticIn, delay: index * 75 }}
-						>
-							{word}
-						</div>
-					{/each}
-					<div class="answer">
-						{#key answer}
-							<h1 class="title answer">{answer}</h1>
-						{/key}
-					</div>
-				</section>
-			</section>
-
-			{#key questions}
-				<section class="section footnote">
-					<ul>
-						{#each questions.reverse() as qst}
-							<li class="list-item" transition:slide={{ duration: 250, easing: elasticIn }}>
-								<h3 class="subtitle">
-									{qst.question}
-								</h3>
-								<h1 class="title answer">{qst.answer}</h1>
-							</li>
-						{/each}
-					</ul>
-				</section>
+{#if loaded}
+	<div class="page {$theme}">
+		<section class="section emotion">
+		<img bind:this={leftEye} src="img/eye_animations/dark/eye_neutral.svg" id="leftEye"  alt="eye">
+		<img bind:this={rightEye} src="img/eye_animations/dark/eye_neutral.svg" id="rightEye"  alt="eye">
+			{#key state}
+				<h1 class="title">
+					{#if state == Expressions.Thinking} "I'm listening..."
+					{:else if state == Expressions.Winking} "I'm winking..." {/if}
+				</h1>
+				{switchExpression(state)}
 			{/key}
-		</div>
-	{/if}
-</div>
+		</section>
+		<section class="section input">
+			{#key dialogueIndex}
+				<div in:fade={{ duration: 500 }}>
+					<h1>{dialogue[dialogueIndex]}</h1>
+				</div>
+			{/key}
+			<TextField bind:value={textFieldValue} />
+			<!-- <section class="section preview">
+				{#each question as word, index}
+					<div
+						class="word-container"
+						in:fly={{ duration: 75, x: 0, y: -15, easing: elasticIn, delay: index * 75 }}
+					>
+						{word}
+					</div>
+				{/each}
+				<div class="answer">
+					{#key answer}
+						<h1 class="title answer">{answer}</h1>
+					{/key}
+				</div>
+			</section> -->
+		</section>
+
+		<!-- {#key questions}
+			<section class="section history">
+				<ul>
+					{#each questions.reverse() as qst}
+						<li class="list-item" transition:slide={{ duration: 250, easing: elasticIn }}>
+							<h3 class="subtitle">
+								{qst.question}
+							</h3>
+							<h1 class="title answer">{qst.answer}</h1>
+						</li>
+					{/each}
+				</ul>
+			</section>
+		{/key} -->
+	</div>
+{/if}
 
 <style>
 	.page {
 		height: 100vh;
-		background: #00568f;
 		text-align: center;
+		flex-direction: column;
 	}
-	.recording {
+	/* .input {
 		height: 25rem;
 		position: relative;
 		padding: 6rem;
@@ -266,14 +274,14 @@
 		background-repeat: no-repeat;
 		background-position: center;
 		margin: 2rem;
-	}
+	} */
 	.title {
 		font-style: normal;
 		font-weight: 700;
 		font-size: 48px;
 		line-height: 54px;
 	}
-	.footnote {
+	.history {
 		height: 25rem;
 	}
 	.preview {

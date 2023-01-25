@@ -75,9 +75,15 @@
 
 	const stopRecording = () => {
 		recognition.stop();
+<<<<<<< HEAD
 		state = Expressions.Neutral;
 		console.log('sending:' + question);
+		socket.send(question);
+=======
+
+		state = 0;
 		socket.send(question.join(' '));
+>>>>>>> 4797ca6ed710baf513a3d4a73dd672c0082b53eb
 	};
 </script>
 
