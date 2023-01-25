@@ -1,6 +1,6 @@
 <script>
 	import { onMount } from 'svelte';
-	import { fade, fly, slide } from 'svelte/transition';
+	import { fly, slide } from 'svelte/transition';
 	import * as eases from 'svelte/easing';
 	import Microphone from './Microphone.svelte';
 	import { elasticIn } from 'svelte/easing';
@@ -96,7 +96,7 @@
 <style>
 	.page {
 		height: 100vh;
-		background: #f4f4f4;
+		background: #00568f;
 		text-align: center;
 	}
 	.recording {
