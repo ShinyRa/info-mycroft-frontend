@@ -146,7 +146,7 @@
 						leftEye.style = "transform: scaleY(1)";
 					}
 					
-					let newSrc = `img/eye_animations/dark/${img}${reversed}.svg`
+					let newSrc = `img/eye_animations/${theme}/${img}${reversed}.svg`
 					leftEye.src = newSrc
 					leftEyeState = pair[0]
 					refreshImage(leftEye);
@@ -170,7 +170,7 @@
 						rightEye.style = "transform: scaleY(1)";
 					}
 
-					let newSrc = `img/eye_animations/dark/${img}${reversed}.svg`
+					let newSrc = `img/eye_animations/${theme}/${img}${reversed}.svg`
 					rightEye.src = newSrc
 					rightEyeState = pair[1]
 					refreshImage(rightEye);
@@ -185,11 +185,6 @@
 			//5. repeat until queue is empty -> resolve
 			resolve(true); 
 		}).then(()=>{expressionAnimationPromise = null});
-	};
-
-	const refreshEyes = () => {
-		refreshImage(leftEye);
-		refreshImage(rightEye);
 	};
 
 	const refreshImage = (element) => {    
@@ -209,15 +204,17 @@
 {#if loaded}
 	<div class="page {$theme}">
 		<section class="section emotion">
-		<img bind:this={leftEye} src="img/eye_animations/dark/eye_neutral.svg" id="leftEye"  alt="eye">
-		<img bind:this={rightEye} src="img/eye_animations/dark/eye_neutral.svg" id="rightEye"  alt="eye">
-			{#key state}
-				<h1 class="title">
-					{#if state == Expressions.Thinking} "I'm listening..."
-					{:else if state == Expressions.Winking} "I'm winking..." {/if}
-				</h1>
-				{switchExpression(state)}
-			{/key}
+			<div class="face">
+				<img bind:this={leftEye} src="img/eye_animations/{$theme}/eye_neutral.svg" id="leftEye" class=eye alt="eye">
+				<img bind:this={rightEye} src="img/eye_animations/{$theme}/eye_neutral.svg" id="rightEye" class=eye alt="eye">
+				{#key state}
+					<h1 class="title">
+						{#if state == Expressions.Thinking} "I'm listening..."
+						{:else if state == Expressions.Winking} "I'm winking..." {/if}
+					</h1>
+					{switchExpression(state)}
+				{/key}
+			</div>
 		</section>
 		<section class="section input">
 			{#key dialogueIndex}
@@ -298,5 +295,16 @@
 
 	.answer {
 		color: #0072bb;
+	}
+
+	.face {
+		max-height: 500px;
+	}
+
+	.eye {
+		max-width: 30%;
+        margin-left: auto;
+        margin-right: auto;
+		padding: 5%;
 	}
 </style>
