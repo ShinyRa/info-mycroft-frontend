@@ -15,7 +15,7 @@
 		stop: () => void;
 	};
 
-	let time = 5000;
+	let time = 7000;
 
 	let timeElapsed = 0;
 
@@ -32,10 +32,13 @@
 		}
 		recognition.lang = 'en-US';
 		recognition.continuous = true;
+		recognition.interimResults = true;
 		recognition.onresult = (event) => {
 			let current = event.resultIndex;
 			let transcript = event.results[current][0].transcript;
-			question += transcript;
+			if (transcript.length > question.length) {
+				question = transcript.split(' ');
+			}
 		};
 
 		socket.onmessage = (event) => {
@@ -54,7 +57,7 @@
 		window.speechSynthesis.speak(speech);
 	};
 
-	const startRecording = () => {
+	export const startRecording = () => {
 		question = '';
 		answer = '';
 		recognition.start();
@@ -72,12 +75,16 @@
 
 	const stopRecording = () => {
 		recognition.stop();
+<<<<<<< HEAD
 		state = Expressions.Neutral;
 		console.log('sending:' + question);
 		socket.send(question);
+=======
+
+		state = 0;
+		socket.send(question.join(' '));
+>>>>>>> 4797ca6ed710baf513a3d4a73dd672c0082b53eb
 	};
 </script>
 
 <progress class="progress is-info" value={timeElapsed} max={time} />
-<button class="button is-primary" on:click={() => startRecording()}>Record</button>
-{question}
