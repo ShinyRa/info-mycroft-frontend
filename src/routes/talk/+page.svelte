@@ -54,7 +54,7 @@
 		}
 	];
 
-	let dialogueIndex = 3;
+	let dialogueIndex = 0;
 	let renderInput = false;
 
 	onMount(async () => {
@@ -72,7 +72,7 @@
 				renderInput = true;
 				clearInterval(introSequence);
 			}
-		}, 1500);
+		}, 2500);
 
 		socket.onmessage = (event) => {
 			if (event.data == answer) {
@@ -141,9 +141,11 @@
 {#if loaded}
 	<AudioPlayer bind:playHello bind:playFail bind:playSuccess />
 	<div class="page {$theme}">
-		<section class="section emotion">
-			<Face bind:switchExpression />
-		</section>
+		{#key loaded}
+			<section class="section emotion" in:fade={{ duration: 1500 }}>
+				<Face bind:switchExpression />
+			</section>
+		{/key}
 		<section class="section userinput {$theme}">
 			{#key dialogueIndex}
 				{#key answer}
