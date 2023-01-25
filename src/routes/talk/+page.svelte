@@ -1,12 +1,12 @@
 <script>
 	import { onMount } from 'svelte';
-	import {Expressions} from "../../expression-states";
-	import {EyeStates} from "../../eye-states";
-	import {ExpressionsToEyeStates} from "../../expressions-to-eyestates";
-	import {EyeStatesToImgSrc} from "../../eyestates-to-img-src";
 	import { fade, fly, slide } from 'svelte/transition';
 	import { theme } from '../../components/theme/themeStore';
 	import TextField from '../../components/input/TextField.svelte';
+	import Face from '../../components/face/Face.svelte';
+	import { Expressions } from '../../components/face/expression-states';
+	import { elasticIn } from 'svelte/easing';
+	import AudioPlayer from '../../components/audio/AudioPlayer.svelte';
 
 	/**
 	 * @type {WebSocket}
@@ -29,208 +29,146 @@
 	let question = [];
 	let answer = '';
 	let textFieldValue;
+	let switchExpression;
 
-	const dialogue = [
-		'Hi, I am Kiko !',
-		'I know a lot about travel information or weather updates for example',
-		'If you need me, I’m listening...'
+	const intro = [
+		{
+			dialogue: '',
+			expression: Expressions.Neutral
+		},
+		{
+			dialogue: 'Hi, I am Kiko !',
+			expression: Expressions.Talking
+		},
+		{
+			dialogue: 'I know a lot about travel information or weather updates for example',
+			expression: Expressions.Winking
+		},
+		{
+			dialogue: "If you need me, I'm listening...",
+			expression: Expressions.Neutral
+		},
+		{
+			dialogue: '',
+			expression: Expressions.Neutral
+		}
 	];
 
-	let dialogueIndex = 0;
-
-	let leftEye;
-	let leftEyeState = EyeStates.Neutral;
-	let rightEye;
-	let rightEyeState = EyeStates.Neutral;
-
-	let expressionQueue = [];
-	let expressionAnimationPromise = null;
+	let dialogueIndex = 3;
+	let renderInput = false;
 
 	onMount(async () => {
 		loaded = true;
 
 		socket = new WebSocket('ws://10.0.0.241:1337/');
 
-		setInterval(() => {
+		let introSequence = setInterval(() => {
 			dialogueIndex++;
-		}, 5000);
+			switchExpression(intro[dialogueIndex].expression);
+			if (dialogueIndex != 1) {
+				saveQuestion(null, intro[dialogueIndex - 1].dialogue);
+			}
+			if (intro[dialogueIndex + 1] == null) {
+				renderInput = true;
+				clearInterval(introSequence);
+			}
+		}, 1500);
+
+		socket.onmessage = (event) => {
+			if (event.data == answer) {
+				return;
+			}
+			answer = event.data;
+			if (
+				answer.includes("don't understand") ||
+				answer.includes('rephrase your request') ||
+				answer.includes("didn't catch that") ||
+				answer.includes('not sure I understood you') ||
+				answer.includes('say that a different way') ||
+				answer.includes("don't know")
+			) {
+				switchExpression(Expressions.Listening);
+				playFail();
+			} else {
+				switchExpression(Expressions.Talking);
+				playSuccess();
+			}
+			setTimeout(() => {
+				readOutLoud(event.data);
+			}, 750);
+			setTimeout(() => {
+				saveQuestion(question, answer);
+				answer = '';
+			}, 10000);
+		};
 	});
+
+	const readOutLoud = (message) => {
+		let speech = new SpeechSynthesisUtterance();
+		speech.text = message;
+		speech.volume = 1;
+		speech.rate = 1;
+		speech.pitch = 1;
+		window.speechSynthesis.speak(speech);
+	};
 
 	const saveQuestion = (question, answer) => {
 		questions.push({
-			question: question.join(' '),
+			question: question,
 			answer: answer
 		});
 		questions = questions;
 	};
 
-	const getKeyByValue = (object, value) => {
-  		return Object.keys(object).find(key => JSON.stringify(object[key]) === JSON.stringify(value));
-	}
-
-	const switchExpression = (expression) => { 
-		if(expression == null) return; 
-		//then write logic to push correct animations for each eye to achieve smooth switch of expressions
-		let lastPair = [];
-
-		const queueLength = expressionQueue.length;
-		if(queueLength > 0){
-			lastPair = expressionQueue[queueLength-1];
-		}
-		else {
-			lastPair = [leftEyeState, rightEyeState];
-		}
-		
-		if(expression == Expressions.Neutral){
-			expressionQueue.unshift(ExpressionsToEyeStates.Neutral);
-
-			if(expressionAnimationPromise == null) startExpressionAnimations();
-			return;
-		} 
-
-		let lastExpression = getKeyByValue(ExpressionsToEyeStates, lastPair);
-
-		if(expression == Expressions.Winking){
-			if(Expressions[lastExpression] != Expressions.Neutral){
-				expressionQueue.unshift(ExpressionsToEyeStates.Neutral);
-			} 
-
-			expressionQueue.unshift(ExpressionsToEyeStates.Winking);
-
-			if(expressionAnimationPromise == null) startExpressionAnimations();
-			return;
-		}
-
-		if(expression == lastExpression){
-			expressionQueue.unshift(lastPair);
-		} else {
-			if(Expressions[lastExpression] != Expressions.Neutral){
-				expressionQueue.unshift(ExpressionsToEyeStates.Neutral);
-			} 
-
-			let expressionIndex = getKeyByValue(Expressions, expression);
-			expressionQueue.unshift(ExpressionsToEyeStates[expressionIndex]);
-		}
-
-		if(expressionAnimationPromise) return;
-
-		startExpressionAnimations();
+	const onInputFocus = () => {
+		switchExpression(Expressions.Talking);
 	};
 
-	const startExpressionAnimations = () => {
-		console.log(expressionQueue)
-		expressionAnimationPromise = new Promise(async (resolve) => {
-			//1. take the first pair of eye animations form the queue
-			while(expressionQueue.length > 0){
-				let pair = expressionQueue.pop();
-
-				//2. for each eye: check that the state is not the eyes current state, if not: switch the src to new image
-				//rewrite to be usable as function for both eyes
-				if(leftEyeState != pair[0]) {
-					let img;
-					let reversed = "";
-
-					if(pair[0] == EyeStates.Neutral){
-						img = EyeStatesToImgSrc[leftEyeState]
-						reversed = "_reverse"
-					} else{
-						img = EyeStatesToImgSrc[pair[0]]
-						reversed = ""
-					}
-
-					if(leftEyeState == EyeStates.Down || pair[0] == EyeStates.Down){
-						leftEye.style = "transform: scaleY(-1)";
-					} else {
-						leftEye.style = "transform: scaleY(1)";
-					}
-					
-					let newSrc = `img/eye_animations/${$theme}/${img}${reversed}.svg`
-					leftEye.src = newSrc
-					leftEyeState = pair[0]
-					refreshImage(leftEye);
-				}
-
-				if(rightEyeState != pair[1]) {
-					let img;
-					let reversed = "";
-
-					if(pair[1] == EyeStates.Neutral){
-						img = EyeStatesToImgSrc[rightEyeState]
-						reversed = "_reverse"
-					} else{
-						img = EyeStatesToImgSrc[pair[1]]
-						reversed = ""
-					}
-
-					if(rightEyeState == EyeStates.Down || pair[1] == EyeStates.Down){
-						rightEye.style = "transform: scaleY(-1)";
-					} else {
-						rightEye.style = "transform: scaleY(1)";
-					}
-
-					let newSrc = `img/eye_animations/${$theme}/${img}${reversed}.svg`
-					rightEye.src = newSrc
-					rightEyeState = pair[1]
-					refreshImage(rightEye);
-				}
-
-				//3. set an await for 0.4s 
-				await new Promise(awaitResolve => setTimeout(awaitResolve, 400))
-			}
-			
-			
-			//4. go to step 1
-			//5. repeat until queue is empty -> resolve
-			resolve(true); 
-		}).then(()=>{expressionAnimationPromise = null});
+	const onInputFocusOut = () => {
+		switchExpression(Expressions.Neutral);
 	};
 
-	const refreshImage = (element) => {    
-		// wacky code to reload image source to reset css animation concistently
-		if(!element) return;
-
-		var timestamp = new Date().getTime();  
-		let imgURL = element.src.split('?')[0]
-	
-		var queryString = "?t=" + timestamp;    
-	
-		element.src = imgURL + queryString;    
+	const submit = () => {
+		switchExpression(Expressions.Thinking);
+		socket.send(textFieldValue);
 	};
 
-	const buttonFunction = (newState) => {
-		switchExpression(newState);
-	}
-
+	let playHello;
+	let playFail;
+	let playSuccess;
 </script>
 
 {#if loaded}
+	<AudioPlayer bind:playHello bind:playFail bind:playSuccess />
 	<div class="page {$theme}">
 		<section class="section emotion">
-			<div class="face">
-				<img bind:this={leftEye} src="img/eye_animations/{$theme}/eye_neutral.svg" id="leftEye" class=eye alt="eye">
-				<img bind:this={rightEye} src="img/eye_animations/{$theme}/eye_neutral.svg" id="rightEye" class=eye alt="eye">
-				{#key state}
-					<h1 class="title">
-						{#if state == Expressions.Thinking} "I'm listening..."
-						{:else if state == Expressions.Winking} "I'm winking..." {/if}
-					</h1>
-					{switchExpression(state)}
-				{/key}
-			</div>
-			<button on:click={() => switchExpression(Expressions.Neutral)}>Neutral</button>
-			<button on:click={() => switchExpression(Expressions.Listening)}>Listening</button>
-			<button on:click={() => switchExpression(Expressions.Talking)}>Talking</button>
-			<button on:click={() => switchExpression(Expressions.Winking)}>Winking</button>
-			<button on:click={() => switchExpression(Expressions.Thinking)}>Thinking</button>
+			<Face bind:switchExpression />
 		</section>
-		<section class="section input">
+		<section class="section userinput {$theme}">
 			{#key dialogueIndex}
-				<div in:fade={{ duration: 500 }}>
-					<h1>{dialogue[dialogueIndex]}</h1>
-				</div>
+				{#key answer}
+					<div in:fly={{ duration: 500, delay: 450 }} out:fly={{ x: 0, y: 50 }}>
+						{#if renderInput}
+							<div class="answer">
+								<h1 class="title {$theme}">{answer ? answer : ' '}</h1>
+							</div>
+						{:else}
+							<h1 class="title {$theme}">{intro[dialogueIndex].dialogue}</h1>
+						{/if}
+					</div>
+				{/key}
+				{#if renderInput}
+					<div in:fly={{ duration: 75, delay: 450 }}>
+						<TextField
+							bind:value={textFieldValue}
+							onFocus={onInputFocus}
+							onFocusOut={onInputFocusOut}
+							onSubmit={submit}
+						/>
+					</div>
+				{/if}
 			{/key}
-			<TextField bind:value={textFieldValue} />
-			<!-- <section class="section preview">
+			<section class="section preview">
 				{#each question as word, index}
 					<div
 						class="word-container"
@@ -239,28 +177,28 @@
 						{word}
 					</div>
 				{/each}
-				<div class="answer">
-					{#key answer}
-						<h1 class="title answer">{answer}</h1>
-					{/key}
-				</div>
-			</section> -->
+			</section>
 		</section>
 
-		<!-- {#key questions}
-			<section class="section history">
-				<ul>
-					{#each questions.reverse() as qst}
-						<li class="list-item" transition:slide={{ duration: 250, easing: elasticIn }}>
-							<h3 class="subtitle">
-								{qst.question}
-							</h3>
-							<h1 class="title answer">{qst.answer}</h1>
+		<section class="section history">
+			<ul>
+				{#if questions.reverse()[0]}
+					{#key dialogueIndex}
+						<li
+							class="list-item"
+							in:fly={{ x: 0, y: -50, easing: elasticIn, delay: 450, duration: 75 }}
+						>
+							{#if questions.reverse()[0].question != null}
+								<h3 class="subtitle">
+									{questions.reverse()[0].question}
+								</h3>
+							{/if}
+							<h1 class="answer">{questions.reverse()[0].answer}</h1>
 						</li>
-					{/each}
-				</ul>
-			</section>
-		{/key} -->
+					{/key}
+				{/if}
+			</ul>
+		</section>
 	</div>
 {/if}
 
@@ -270,29 +208,17 @@
 		text-align: center;
 		flex-direction: column;
 	}
-	/* .input {
-		height: 25rem;
+	.userinput {
+		height: 20rem;
 		position: relative;
-		padding: 6rem;
-		background-image: url('/img/dots.png');
-		background-repeat: no-repeat;
-		background-position: center;
-		margin: 2rem;
-	} */
+	}
 	.title {
 		font-style: normal;
 		font-weight: 700;
-		font-size: 48px;
-		line-height: 54px;
+		font-size: 5rem;
 	}
 	.history {
-		height: 25rem;
-	}
-	.preview {
-		display: flex;
-		flex-direction: row;
-		gap: 1.5rem;
-		flex-wrap: wrap;
+		height: 20rem;
 	}
 
 	.word-container {
@@ -301,17 +227,9 @@
 	}
 
 	.answer {
-		color: #0072bb;
-	}
-
-	.face {
-		max-height: 500px;
-	}
-
-	.eye {
-		max-width: 30%;
-        margin-left: auto;
-        margin-right: auto;
-		padding: 5%;
+		color: #1c8fd7;
+		font-size: 4rem;
+		min-height: 4rem;
+		margin-bottom: 4rem;
 	}
 </style>

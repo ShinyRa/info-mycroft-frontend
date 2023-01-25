@@ -1,6 +1,6 @@
 <script type="typescript">
 	import { onMount } from 'svelte';
-	import {Expressions} from "../../expression-states";
+	import { Expressions } from '../../expression-states';
 
 	export let socket;
 	export let onMessage;
@@ -40,22 +40,7 @@
 				question = transcript.split(' ');
 			}
 		};
-
-		socket.onmessage = (event) => {
-			answer = event.data;
-			readOutLoud(event.data);
-			onMessage(question, answer);
-		};
 	});
-
-	const readOutLoud = (message) => {
-		let speech = new SpeechSynthesisUtterance();
-		speech.text = message;
-		speech.volume = 1;
-		speech.rate = 1;
-		speech.pitch = 1;
-		window.speechSynthesis.speak(speech);
-	};
 
 	export const startRecording = () => {
 		question = '';

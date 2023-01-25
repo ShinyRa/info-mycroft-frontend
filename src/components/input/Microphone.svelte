@@ -1,6 +1,6 @@
 <script type="typescript">
 	import { onMount } from 'svelte';
-	import {Expressions} from "../../expression-states";
+	import {Expressions} from "../face/expression-states";
 
 	export let socket;
 	export let onMessage;
