@@ -1,5 +1,6 @@
 <script type="typescript">
 	import { onMount } from 'svelte';
+	import {Expressions} from "../../expression-states";
 
 	export let socket;
 	export let onMessage;
@@ -57,7 +58,7 @@
 		question = '';
 		answer = '';
 		recognition.start();
-		state = 1;
+		state = Expressions.Listening;
 		timeElapsed = 0;
 
 		let recording = setInterval(() => {
@@ -71,7 +72,7 @@
 
 	const stopRecording = () => {
 		recognition.stop();
-		state = 0;
+		state = Expressions.Neutral;
 		console.log('sending:' + question);
 		socket.send(question);
 	};
